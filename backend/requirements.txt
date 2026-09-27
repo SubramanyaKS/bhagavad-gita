@@ -1,0 +1,4 @@
+deep-translator
+indic_transliteration
+fastapi
+uvicorn
