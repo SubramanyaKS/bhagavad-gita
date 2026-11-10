@@ -4,6 +4,7 @@ from app.exceptions.exceptions import ChapterNotFoundError, LanguageNotSupported
 from app.exceptions.handlers import chapter_not_found_handler, language_not_supported_handler, verse_not_found_handler
 from app.routes.gita import router as gitarouter
 from app.routes.health import router as healthrouter
+from app.routes.ask import router as askrouter
 
 app = FastAPI(
     title="Bhagavath Gita API",
@@ -35,3 +36,4 @@ app.add_exception_handler(
 
 app.include_router(healthrouter)
 app.include_router(gitarouter)
+app.include_router(askrouter)

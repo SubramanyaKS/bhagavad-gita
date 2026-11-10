@@ -4,6 +4,7 @@ const navItems = [
   { label: "Home", icon: "🏠", href: "/" },
   { label: "Read", icon: "📖", href: "/explore" },
   { label: "Learn", icon: "✦", href: "/learn" },
+  { label: "Ask", icon: "💬", href: "/ask" },
 ];
 
 export default function MobileNav() {

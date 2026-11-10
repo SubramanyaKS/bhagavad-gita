@@ -79,6 +79,9 @@ export default function Navbar() {
         <Link href="/learn" className="text-[#625b51] no-underline hover:text-[#29251f] transition">
           Learn
         </Link>
+        <Link href="/ask" className="text-[#625b51] no-underline hover:text-[#29251f] transition">
+          Ask
+        </Link>
       </div>
 
       {/* Nav Actions */}
