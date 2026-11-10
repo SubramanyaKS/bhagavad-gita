@@ -1,26 +1,65 @@
+let currentOnEndCallback: (() => void) | null = null
+
 export const speak = (
   text: string,
   lang: string,
-  rate = 1,
-  pitch = 1
+  onStart?: () => void,
+  onEnd?: () => void,
+  rate = 0.9,
+  pitch = 1,
 ) => {
-  window.speechSynthesis.cancel();
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return
+  }
 
-  const speech = new SpeechSynthesisUtterance(text);
+  stopSpeaking()
 
-  speech.lang = lang;
-  speech.rate = rate;
-  speech.pitch = pitch;
+  const cleanText = text.replace(/।।.*।।/g, '').replace(/[|।]/g, '').trim()
+  const speech = new SpeechSynthesisUtterance(cleanText || text)
 
-  const voices = window.speechSynthesis.getVoices();
+  speech.lang = lang
+  speech.rate = rate
+  speech.pitch = pitch
 
-voices.forEach((voice) => {
-  console.log(voice.name, voice.lang);
-});
+  const voices = window.speechSynthesis.getVoices()
+  const lowerLang = lang.toLowerCase()
+  const langPrefix = lowerLang.split('-')[0]
 
-  window.speechSynthesis.speak(speech);
-};
+  let matchedVoice = voices.find((v) => v.lang.toLowerCase() === lowerLang)
+  if (!matchedVoice) {
+    matchedVoice = voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix))
+  }
+  if (!matchedVoice && (langPrefix === 'sa' || lowerLang.includes('sa'))) {
+    matchedVoice = voices.find((v) => v.lang.toLowerCase().includes('hi'))
+  }
+
+  if (matchedVoice) {
+    speech.voice = matchedVoice
+  }
+
+  speech.onstart = () => {
+    if (onStart) onStart()
+  }
+
+  const handleEnd = () => {
+    currentOnEndCallback = null
+    if (onEnd) onEnd()
+  }
+
+  speech.onend = handleEnd
+  speech.onerror = handleEnd
+
+  currentOnEndCallback = onEnd ?? null
+  window.speechSynthesis.speak(speech)
+}
 
 export const stopSpeaking = () => {
-  window.speechSynthesis.cancel();
-};
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    return
+  }
+  window.speechSynthesis.cancel()
+  if (currentOnEndCallback) {
+    currentOnEndCallback()
+    currentOnEndCallback = null
+  }
+}

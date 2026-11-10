@@ -1,96 +1,141 @@
-import json
 from fastapi import HTTPException
-from app.utils.language import language_map
-from app.exceptions.exceptions import ChapterNotFoundError
-from app.utils.fetch_json import get_chapter_json
+from app.exceptions.exceptions import ChapterNotFoundError, VerseNotFoundError
+from app.utils.fetch_json import get_chapter_json, get_chapter_verses_json
+from app.utils.language import normalize_language
 
 async def get_all_chapters_title():
     try:
-        data = get_chapter_json()       
-        return data
-    
+        return get_chapter_json()
     except FileNotFoundError:
-        raise HTTPException(status_code=404,detail=f"Chapters not found")
+        raise HTTPException(status_code=404, detail="Chapters not found")
 
-async def get_chapter(chapter:int,language:str):
+async def get_chapter(chapter: int, language: str = "sanskrit"):
+    lang_code = normalize_language(language)
+
     try:
-        chapter_data=get_chapter_json()
-        chapter_data= chapter_data[chapter-1]
-        with open(f'data/transliterate/bg_chapter_{chapter}.json','r',encoding='utf-8') as file:
-            data = json.load(file)
-        result=[]
+        chapter_list = get_chapter_json()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chapters not found")
 
-        for item in data:
-            sloka =item["sanskrit"]["devanagari"]
-            if language in language_map:
-                 sloka= item["scripts"][language_map[language]]
-            res= {
-        "id": item["id"],
-        "chapter": item["chapter"],
-        "sloka": sloka,
-        "verse": item["verse"]
+    if chapter < 1 or chapter > len(chapter_list):
+        raise ChapterNotFoundError(chapter)
+
+    chapter_data = chapter_list[chapter - 1]
+
+    try:
+        data = get_chapter_verses_json(chapter)
+    except FileNotFoundError:
+        raise ChapterNotFoundError(chapter)
+
+    result = []
+    for item in data:
+        sloka = item["sanskrit"]["devanagari"]
+        if lang_code != "sa" and lang_code in item.get("scripts", {}) and item["scripts"][lang_code]:
+            sloka = item["scripts"][lang_code]
+
+        res = {
+            "id": item["id"],
+            "chapter": item["chapter"],
+            "sloka": sloka,
+            "verse": item["verse"],
+        }
+        result.append(res)
+
+    title = chapter_data["name"].get("sanskrit")
+    if lang_code != "sa" and lang_code in chapter_data.get("name", {}) and chapter_data["name"][lang_code]:
+        title = chapter_data["name"][lang_code]
+    elif not title:
+        title = chapter_data["name"].get("english", f"Chapter {chapter}")
+
+    final_data = {
+        "chapter": chapter_data["chapter"],
+        "name": title,
+        "verse_count": chapter_data.get("verse_count", len(result)),
+        "verses": result,
     }
-            result.append(res)
-             
-        title = chapter_data["name"]["sanskrit"]
-        if language in language_map:
-                title= chapter_data["name"][language_map[language]]
-        final_data = {"chapter":chapter_data["chapter"],"name":title,"verse_count":chapter_data["verse_count"],"verses":result}
 
-        return {"success":True,"data":final_data}
+    return {"success": True, "data": final_data}
+
+async def get_all_verses(chapter: int):
+    try:
+        chapter_list = get_chapter_json()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chapters not found")
+
+    if chapter < 1 or chapter > len(chapter_list):
+        raise ChapterNotFoundError(chapter)
+
+    try:
+        data = get_chapter_verses_json(chapter)
     except FileNotFoundError:
         raise ChapterNotFoundError(chapter)
 
-async def get_all_verses(chapter:int):
+    return {"success": True, "data": data}
+
+async def get_verses(chapter: int, verse: int, language: str = "sanskrit"):
+    lang_code = normalize_language(language)
+
     try:
-        chapter_data = get_chapter_json()
-        # chapter_data= chapter_data[chapter-1] 
-        with open(f'data/transliterate/bg_chapter_{chapter}.json','r',encoding='utf-8') as file:
-            data = json.load(file)
-         
-        return {"success":True,"data":data}
-         
+        chapter_list = get_chapter_json()
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chapters not found")
+
+    if chapter < 1 or chapter > len(chapter_list):
+        raise ChapterNotFoundError(chapter)
+
+    chapter_data = chapter_list[chapter - 1]
+
+    try:
+        data = get_chapter_verses_json(chapter)
     except FileNotFoundError:
         raise ChapterNotFoundError(chapter)
-          
-          
 
-async def get_verses(chapter:int,verse:int,language:str):
-    try:
-        chapter_data = get_chapter_json()
-        chapter_data= chapter_data[chapter-1] 
-        with open(f'data/transliterate/bg_chapter_{chapter}.json','r',encoding='utf-8') as file:
-            data = json.load(file)
+    matched = None
+    for item in data:
+        if item["verse"] == verse:
+            matched = item
+            break
 
-        for item in data:
-            if language in language_map:
-                 text = item["scripts"][language_map[language]]
-            else:
-                text = item["sanskrit"]["devanagari"]
-            if item["verse"] == verse:
-                    res= {
-                "id": item["id"],
-                "chapter": item["chapter"],
-                "sloka": item["sanskrit"]["devanagari"],
-                "verse": item["verse"],
-                "scripts":{
-                     "kn":item["scripts"]["kn"],
-                     "te":item["scripts"]["te"],
-                     "ml":item["scripts"]["ml"],
-                     "ta":item["scripts"]["ta"]
-                }
-                }
-        name={
-             "sa":chapter_data["name"]["sanskrit"],
-             "kn":chapter_data["name"]["kn"],
-             "te":chapter_data["name"]["te"],
-             "ml":chapter_data["name"]["ml"],
-             "ta":chapter_data["name"]["ta"]
-             }
-         
-        final_data = {"chapter":chapter_data["chapter"],"name":name,"verses":res}
-        
-        return {"success":True,"data":final_data}
+    if matched is None:
+        raise VerseNotFoundError(chapter, verse)
 
-    except FileNotFoundError:
-            raise ChapterNotFoundError(chapter)
+    if lang_code != "sa" and lang_code in matched.get("scripts", {}) and matched["scripts"][lang_code]:
+        sloka_text = matched["scripts"][lang_code]
+    else:
+        sloka_text = matched["sanskrit"]["devanagari"]
+
+    res = {
+        "id": matched["id"],
+        "chapter": matched["chapter"],
+        "verse": matched["verse"],
+        "sloka": sloka_text,
+        "sanskrit": matched.get("sanskrit", {}),
+        "transliteration": matched.get("transliteration", {}),
+        "scripts": {
+            "kn": matched.get("scripts", {}).get("kn"),
+            "te": matched.get("scripts", {}).get("te"),
+            "ml": matched.get("scripts", {}).get("ml"),
+            "ta": matched.get("scripts", {}).get("ta"),
+            "hi": matched.get("scripts", {}).get("hi"),
+        },
+    }
+
+    name = {
+        "sa": chapter_data["name"].get("sanskrit"),
+        "iast": chapter_data["name"].get("iast"),
+        "en": chapter_data["name"].get("english"),
+        "kn": chapter_data["name"].get("kn"),
+        "te": chapter_data["name"].get("te"),
+        "ml": chapter_data["name"].get("ml"),
+        "ta": chapter_data["name"].get("ta"),
+        "hi": chapter_data["name"].get("hi"),
+    }
+
+    final_data = {
+        "chapter": chapter_data["chapter"],
+        "verse_count": chapter_data.get("verse_count", len(data)),
+        "name": name,
+        "verses": res,
+    }
+
+    return {"success": True, "data": final_data}

@@ -7,6 +7,12 @@
   --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
 
+html.dark {
+  --background: #181512;
+  --foreground: #ede8df;
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -21,7 +27,103 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* Dark mode theme overrides */
+html.dark nav,
+html.dark .mobile-nav {
+  background: rgba(24, 21, 18, 0.96) !important;
+  border-color: #383229 !important;
+}
+
+html.dark main,
+html.dark .bg-\[\#f7f4ed\] {
+  background-color: #181512 !important;
+}
+
+html.dark .bg-\[\#fffdf8\] {
+  background-color: #231f1a !important;
+}
+
+html.dark .bg-\[\#faf8f3\],
+html.dark .bg-\[\#faf6ee\],
+html.dark .bg-\[\#f1ede4\],
+html.dark .bg-\[\#f7f4ee\],
+html.dark .bg-\[\#f8f5f0\],
+html.dark .bg-\[\#f9f5ef\],
+html.dark .bg-\[\#f8f3ea\],
+html.dark .bg-\[\#fbf9f4\],
+html.dark .bg-\[\#f4efe8\] {
+  background-color: #1f1b17 !important;
+}
+
+html.dark .text-\[\#29251f\],
+html.dark .text-\[\#302b24\],
+html.dark .text-\[\#2a241e\],
+html.dark .text-\[\#2d261f\],
+html.dark .text-\[\#1d1b19\] {
+  color: #ede8df !important;
+}
+
+html.dark .text-\[\#766e63\],
+html.dark .text-\[\#81786d\],
+html.dark .text-\[\#81796d\],
+html.dark .text-\[\#625b51\],
+html.dark .text-\[\#665d52\],
+html.dark .text-\[\#655e54\],
+html.dark .text-\[\#5f574c\],
+html.dark .text-\[\#574f47\],
+html.dark .text-\[\#544d44\],
+html.dark .text-\[\#4f483f\],
+html.dark .text-\[\#756d62\],
+html.dark .text-\[\#6d6356\] {
+  color: #b8aea0 !important;
+}
+
+html.dark .text-\[\#9a8d7c\],
+html.dark .text-\[\#948979\],
+html.dark .text-\[\#9a8e7e\],
+html.dark .text-\[\#a09382\],
+html.dark .text-\[\#8b8174\],
+html.dark .text-\[\#8c7d69\],
+html.dark .text-\[\#8c7e6a\],
+html.dark .text-\[\#8d8175\],
+html.dark .text-\[\#8f7d69\],
+html.dark .text-\[\#9b8d7c\] {
+  color: #a49684 !important;
+}
+
+html.dark .border-\[\#e0d9ce\],
+html.dark .border-\[\#ded8cc\],
+html.dark .border-\[\#e1dbd0\],
+html.dark .border-\[\#d8d1c5\],
+html.dark .border-\[\#dcd5c9\],
+html.dark .border-\[\#efe8df\],
+html.dark .border-\[\#e9e0d4\],
+html.dark .border-\[\#e5dccd\],
+html.dark .border-\[\#efe4d4\],
+html.dark .border-\[\#e8dfd2\],
+html.dark .border-\[\#ece1d1\],
+html.dark .border-\[\#e6dcc9\],
+html.dark .border-\[\#e3d9cb\],
+html.dark .border-\[\#ece6dc\],
+html.dark .border-\[\#d5cec2\],
+html.dark .border-\[\#d8d0c3\],
+html.dark .border-\[\#ddd6ca\],
+html.dark .border-\[\#d9d1c4\],
+html.dark .border-\[\#d9d0c3\],
+html.dark .border-\[\#ded6c9\],
+html.dark .border-\[\#d2c8b8\] {
+  border-color: #383229 !important;
+}
+
+html.dark input {
+  background-color: #231f1a !important;
+  color: #ede8df !important;
+  border-color: #383229 !important;
+}
+
 
 *,
 *::before,

@@ -1,6 +1,6 @@
-import SpeechButton from '@/app/component/SpeechButton'
+import VerseReader from '@/app/component/VerseReader'
 import { getVersePayload } from '@/app/utils/service'
-import { API_BASE_URL } from '@/app/utils/utils'
+import { API_BASE_URL, chapters as staticChapters } from '@/app/utils/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
@@ -10,19 +10,22 @@ const getSafeText = (...values: Array<string | undefined>) =>
   values.find((value) => typeof value === 'string' && value.trim().length > 0)
 
 const fetchVerseByNumber = async (chapterNumber: number, verseNumber: number) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/gita/chapters/${chapterNumber}/verses/${verseNumber}?language=kannada`,
-    {
-      next: { revalidate: 3600 },
-      cache: 'force-cache',
-    },
-  )
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/gita/chapters/${chapterNumber}/verses/${verseNumber}`,
+      {
+        next: { revalidate: 3600 },
+      },
+    )
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return null
+    }
+
+    return response.json()
+  } catch {
     return null
   }
-
-  return response.json()
 }
 
 const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse: string }> }) => {
@@ -41,10 +44,18 @@ const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse:
   }
 
   const resolvedPayload = getVersePayload(payload)
+  const chapterMeta = staticChapters.find((c) => c.number === chapterNumber)
+  const totalVerses = resolvedPayload.data?.verse_count ?? chapterMeta?.verses ?? 0
+  const hasPrevious = verseNumber > 1
+  const hasNext = totalVerses > 0 ? verseNumber < totalVerses : true
+  const previousVerse = verseNumber - 1
+  const nextVerse = verseNumber + 1
+
   const chapterName =
     getSafeText(
       resolvedPayload.data?.name?.sa,
-      resolvedPayload.data?.name?.kn,
+      chapterMeta?.sanskrit,
+      chapterMeta?.name,
       `Chapter ${chapterNumber}`,
     ) ?? `Chapter ${chapterNumber}`
 
@@ -54,26 +65,27 @@ const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse:
     getSafeText(
       verseData?.sloka,
       verseScripts.sa,
-      verseScripts.kn,
     ) ?? 'The verse text is unavailable right now.'
+
+  const transliteration = getSafeText(
+    verseData?.transliteration,
+    (verseData as { transliteration?: { iast?: string } })?.transliteration?.iast,
+  )
 
   const translation = getSafeText(
     verseData?.translation,
     verseData?.meaning,
     verseData?.explanation,
   )
-  const transliteration = getSafeText(verseData?.transliteration, verseScripts.kn, verseScripts.sa)
-  const previousVerse = Math.max(1, verseNumber - 1)
-  const nextVerse = verseNumber + 1
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Link
-          href="/explore"
+          href={`/explore/chapter/${chapterNumber}`}
           className="inline-flex items-center gap-2 font-sans text-[12px] uppercase tracking-[1.8px] text-[#7b7268] transition hover:text-[#29251f]"
         >
-          ← Back to chapters
+          ← Back to Chapter {chapterNumber}
         </Link>
 
         <div className="inline-flex items-center gap-2 rounded-full border border-[#e5dccd] bg-[#fffdf8]/80 px-3 py-1.5 font-sans text-[11px] uppercase tracking-[2px] text-[#7d6f62] shadow-[0_8px_24px_rgba(60,48,32,0.04)]">
@@ -104,37 +116,13 @@ const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse:
             </div>
           </header>
 
-          <div className="space-y-6 px-5 py-6 sm:px-8 sm:py-8">
-            <section className="rounded-[22px] border border-[#e8dfd2] bg-[linear-gradient(135deg,#f8f5f0_0%,#f4efe9_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] sm:p-7">
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div className="font-sans text-[11px] uppercase tracking-[2px] text-[#8c7e6a]">
-                  Original Sanskrit
-                </div>
-                <SpeechButton text={sloka} language="kn-IN" />
-              </div>
-
-              <blockquote className="sanskrit-verse whitespace-pre-line text-[28px] leading-[1.9] text-[#2d261f] sm:text-[34px]">
-                {sloka}
-              </blockquote>
-            </section>
-
-            {transliteration ? (
-              <section className="rounded-[20px] border border-[#e9e0d4] bg-[#fffdf8] p-5 sm:p-6">
-                <div className="mb-3 font-sans text-[11px] uppercase tracking-[1.8px] text-[#8d8175]">
-                  Transliteration
-                </div>
-                <p className="font-sans text-[15px] leading-7 text-[#574f47]">{transliteration}</p>
-              </section>
-            ) : null}
-
-            {translation ? (
-              <section className="rounded-[20px] border border-[#e9e0d4] bg-[#fffdf8] p-5 sm:p-6">
-                <div className="mb-3 font-sans text-[11px] uppercase tracking-[1.8px] text-[#8d8175]">
-                  Translation
-                </div>
-                <p className="font-sans text-[16px] leading-8 text-[#4f483f]">{translation}</p>
-              </section>
-            ) : null}
+          <div className="p-5 sm:p-8">
+            <VerseReader
+              sanskritDevanagari={sloka}
+              transliterationIast={transliteration}
+              scripts={verseScripts}
+              translation={translation}
+            />
           </div>
         </article>
 
@@ -169,27 +157,47 @@ const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse:
             </div>
 
             <div className="space-y-3">
-              <Link
-                href={`/explore/chapter/${chapterNumber}/verse/${previousVerse}`}
-                className="flex items-center justify-between rounded-[14px] border border-[#e3d9cb] bg-[#f9f5ef] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#5a5048] transition hover:border-[#cdbfa8] hover:bg-[#f3ede3]"
-              >
-                <span>Previous</span>
-                <span>←</span>
-              </Link>
+              {hasPrevious ? (
+                <Link
+                  href={`/explore/chapter/${chapterNumber}/verse/${previousVerse}`}
+                  className="flex items-center justify-between rounded-[14px] border border-[#e3d9cb] bg-[#f9f5ef] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#5a5048] transition hover:border-[#cdbfa8] hover:bg-[#f3ede3]"
+                >
+                  <span>Previous ({previousVerse})</span>
+                  <span>←</span>
+                </Link>
+              ) : (
+                <span
+                  className="flex cursor-not-allowed items-center justify-between rounded-[14px] border border-[#ece6dc] bg-[#fbf9f5] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#aba094]"
+                  aria-disabled="true"
+                >
+                  <span>Previous</span>
+                  <span>—</span>
+                </span>
+              )}
 
-              <Link
-                href={`/explore/chapter/${chapterNumber}/verse/${nextVerse}`}
-                className="flex items-center justify-between rounded-[14px] bg-[#2d261f] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#fffdf8] transition hover:bg-[#201d1a]"
-              >
-                <span>Next</span>
-                <span>→</span>
-              </Link>
+              {hasNext ? (
+                <Link
+                  href={`/explore/chapter/${chapterNumber}/verse/${nextVerse}`}
+                  className="flex items-center justify-between rounded-[14px] bg-[#2d261f] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#fffdf8] transition hover:bg-[#201d1a]"
+                >
+                  <span>Next ({nextVerse})</span>
+                  <span>→</span>
+                </Link>
+              ) : (
+                <span
+                  className="flex cursor-not-allowed items-center justify-between rounded-[14px] border border-[#ece6dc] bg-[#fbf9f5] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#aba094]"
+                  aria-disabled="true"
+                >
+                  <span>End of Chapter</span>
+                  <span>—</span>
+                </span>
+              )}
 
               <Link
                 href={`/explore/chapter/${chapterNumber}`}
                 className="flex items-center justify-center rounded-[14px] border border-[#d9d0c3] bg-[#fffdf8] px-4 py-3 font-sans text-[12px] uppercase tracking-[1.5px] text-[#5d554b] transition hover:border-[#b8a993] hover:bg-[#f4efe8]"
               >
-                Chapter overview
+                Chapter {chapterNumber} Overview
               </Link>
             </div>
           </section>
@@ -200,3 +208,4 @@ const SlokaPage = async ({ params }: { params: Promise<{ chapter: string; verse:
 }
 
 export default SlokaPage
+

@@ -16,12 +16,16 @@ export type VersePayload = {
   success?: boolean
   data?: {
     chapter?: number | string
+    verse_count?: number
     name?: {
       sa?: string
       kn?: string
       ml?: string
       te?: string
       ta?: string
+      hi?: string
+      en?: string
+      iast?: string
     }
     verses?: {
       id?: string

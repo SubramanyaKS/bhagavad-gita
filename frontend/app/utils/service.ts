@@ -67,6 +67,24 @@ const getVerseValue = (value: unknown) => {
   }
 }
 
+type RawChapterItem = {
+  chapter?: number | string
+  number?: number | string
+  name?:
+    | string
+    | {
+        english?: string
+        iast?: string
+        sanskrit?: string
+        [key: string]: unknown
+      }
+  description?: string
+  verse_count?: number | string
+  verses?: number | string
+  search?: string
+  tags?: unknown[]
+}
+
 export const resolveChapters = (payload: unknown) => {
   const items = Array.isArray(payload)
     ? payload
@@ -76,7 +94,7 @@ export const resolveChapters = (payload: unknown) => {
         ? (payload as { data: unknown[] }).data
         : []
 
-  return items.map((item: any) => {
+  return (items as RawChapterItem[]).map((item) => {
     const chapterNumber = Number(item?.chapter ?? item?.number ?? 0)
     const chapterName = typeof item?.name === 'string'
       ? item.name
@@ -103,6 +121,7 @@ export const getVersePayload = (payload: unknown): VersePayload => {
   const data = (record.data && typeof record.data === 'object' ? record.data : record) as Record<string, unknown>
   const rawVerses = data.verses ?? record.verses ?? record.verse ?? data.verse ?? data
   const chapter = asNumber(data.chapter ?? (typeof rawVerses === 'object' && rawVerses ? (rawVerses as Record<string, unknown>).chapter : undefined))
+  const verseCount = asNumber(data.verse_count ?? record.verse_count)
   const payloadName = getNameValue(data.name ?? record.name)
   const verseData = getVerseValue(rawVerses)
 
@@ -125,6 +144,7 @@ export const getVersePayload = (payload: unknown): VersePayload => {
     success: Boolean(record.success),
     data: {
       chapter,
+      verse_count: verseCount > 0 ? verseCount : undefined,
       name: safeName,
       verses: {
         id: verseData?.id,

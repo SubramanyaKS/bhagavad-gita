@@ -1,21 +1,28 @@
 import React from 'react'
+import Link from 'next/link'
 import Chapters from './Chapters'
 import { resolveChapters } from '../utils/service'
+import { API_BASE_URL, chapters as staticChapters } from '../utils/utils'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_GITA_API_URL ?? 'http://localhost:8000'
+const fetchChapters = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/gita/chapters`, {
+      next: { revalidate: 60 },
+    })
 
+    if (!response.ok) {
+      return resolveChapters(staticChapters)
+    }
+
+    const payload = await response.json()
+    return resolveChapters(payload)
+  } catch {
+    return resolveChapters(staticChapters)
+  }
+}
 
 const page = async () => {
-  const response = await fetch(`${API_BASE_URL}/api/v1/gita/chapters`, {
-    next: { revalidate: 60 },
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch chapters')
-  }
-
-  const payload = await response.json()
-  const initialChapters = resolveChapters(payload)
+  const initialChapters = await fetchChapters()
 
   return (
    <main className="mx-auto w-full max-w-280 px-4 pb-24 pt-15 sm:px-6 lg:px-8 xl:px-0">
@@ -36,12 +43,12 @@ const page = async () => {
         <p className="mx-auto mb-6 max-w-140 font-sans text-[13px] text-[#81786d]">
           Start a guided journey through the essential teachings of the Bhagavad Gita.
         </p>
-        <button
-          type="button"
-          className="rounded-lg bg-[#302b24] px-5 py-3 font-sans text-[13px] text-[#fffdf8] transition hover:bg-[#221f1b]"
+        <Link
+          href="/learn"
+          className="inline-block rounded-lg bg-[#302b24] px-5 py-3 font-sans text-[13px] text-[#fffdf8] transition hover:bg-[#221f1b]"
         >
           Start Learning
-        </button>
+        </Link>
       </section>
     </main>
   )

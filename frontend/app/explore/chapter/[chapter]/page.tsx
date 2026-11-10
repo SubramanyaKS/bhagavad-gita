@@ -1,4 +1,5 @@
 
+import ChapterVersesList from '@/app/component/ChapterVersesList'
 import { API_BASE_URL } from '@/app/utils/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -30,20 +31,24 @@ type ApiResponse = {
 const fetchVerses = async (
   chapterNumber: number
 ): Promise<ApiResponse | null> => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/v1/gita/chapters/${chapterNumber}/verses`,
-    {
-      next: {
-        revalidate: 3600,
-      },
-    }
-  )
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/gita/chapters/${chapterNumber}/verses`,
+      {
+        next: {
+          revalidate: 3600,
+        },
+      }
+    )
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return null
+    }
+
+    return response.json()
+  } catch {
     return null
   }
-
-  return response.json()
 }
 
 const ChapterPage = async ({
@@ -120,36 +125,7 @@ const ChapterPage = async ({
         </div>
       </section>
 
-      <div className="grid gap-4">
-        {payload.data.map((item) => (
-          <article
-            key={item.id}
-            className="rounded-[20px] border border-[#e0d9ce] bg-[#fffdf8] p-5 transition duration-200 hover:-translate-y-1 hover:border-[#cfc6b8] hover:shadow-[0_12px_30px_rgba(60,48,32,0.07)] sm:p-6"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#efe8df] ">
-              <div className="font-sans text-[11px] uppercase tracking-[1.8px] text-[#9a8d7c]">
-                Verse {item.verse}
-              </div>
-              <Link
-                href={`/explore/chapter/${chapterNumber}/verse/${item.verse}`}
-                className="font-sans text-[12px] text-[#5f574c] transition hover:text-[#29251f]"
-              >
-                Read verse →
-              </Link>
-            </div>
-
-            <p className="whitespace-pre-line text-[24px] text-[#2a241e] sm:text-[30px]">
-              {item.sanskrit?.devanagari || 'The verse text is unavailable right now.'}
-            </p>
-
-            {item.transliteration?.iast ? (
-              <p className="mt-4 border-t border-[#efe8df] pt-4 font-sans text-[14px] leading-7 text-[#574f47]">
-                {item.transliteration.iast}
-              </p>
-            ) : null}
-          </article>
-        ))}
-      </div>
+      <ChapterVersesList verses={payload.data} chapterNumber={chapterNumber} />
     </main>
   )
 }
